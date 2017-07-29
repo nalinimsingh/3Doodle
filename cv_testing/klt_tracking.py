@@ -7,29 +7,26 @@ import numpy as np
 import cv2
 
 dir = os.path.dirname(__file__)
-video = os.path.join(dir,'../mock/black_and_white_dot.MOV')
-cap = cv2.VideoCapture(video)
+path = os.path.join(dir,'../mock/green_pen_manual/trial2')
+images = [os.path.join(path,f) for f in os.listdir(path) if not f.startswith('.')]
 
 feature_params = dict( maxCorners = 100,
-                       qualityLevel = 0.25,
+                       qualityLevel = 0.1,
                        minDistance = 7,
                        blockSize = 7 )
 
 lk_params = dict( winSize  = (15,15),
-                  maxLevel = 2,
+                  maxLevel = 0,
                   criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
 # Find initial features
-ret, old_frame = cap.read()
+old_frame = np.asarray(cv2.imread(images[0]))
+old_frame_green = old_frame
 old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
 p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
-while(1):
-    # Read next frame
-    ret,frame = cap.read()
-    if frame is None:
-      break
-
+for img in images[1:]:
+    frame = np.asarray(cv2.imread(img))
     frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # Calculate optical flow
@@ -53,4 +50,3 @@ while(1):
     p0 = good_new.reshape(-1,1,2)
 
 cv2.destroyAllWindows()
-cap.release()
