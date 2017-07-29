@@ -1,11 +1,13 @@
 import sys
+import os
+
 sys.path.append("/usr/local/lib/python2.7/site-packages/") 
 
 import numpy as np
 import cv2
 
-video = 'IMG_3422.MOV'
- 
+dir = os.path.dirname(__file__)
+video = os.path.join(dir,'../mock/black_and_white_dot.MOV')
 cap = cv2.VideoCapture(video)
 
 feature_params = dict( maxCorners = 100,
