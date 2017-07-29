@@ -6,7 +6,7 @@ Install the [Android NDK](https://developer.android.com/ndk/index.html). One way
 You'll also need to install [OpenCV](http://www.mobileway.net/2015/02/14/install-opencv-for-python-on-mac-os-x/).
 
 * Python - 2.7.12
-* OpenCV - 3.2.0
+* OpenCV - 2.4.13
 * Android NDK - 15.1.4119039 (includes ndk-build)
 * Android SDK platform tools - 26.0.0 (includes adb)
 
