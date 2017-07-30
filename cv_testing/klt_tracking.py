@@ -71,7 +71,7 @@ def main():
 
       # Show current frame    
       cv2.imshow('frame',cv2.resize(frame, (0,0), fx=0.5, fy=0.5))
-      time.sleep(0.5)
+      time.sleep(0.1)
       k = cv2.waitKey(30) & 0xff
       if k == 27:
           break
