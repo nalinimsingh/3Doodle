@@ -1,4 +1,5 @@
 init();
+toggleTracking();
 // testDrawLine();
 
 document.onkeydown = function(e) {
