@@ -7,7 +7,7 @@ from tornado.ioloop import IOLoop
 from tornado.tcpclient import TCPClient
 
 import config
-from web import make_app
+from web import WebApp
 
 xy_imgs = deque()
 z_imgs = deque()
@@ -18,25 +18,50 @@ z_imgs = deque()
 # - add in image processing of paired images
 # - add websocket layer that broadcasts coordinates to clients
 
-# class SocketHandler(websocket.WebSocketHandler):
-#     def open(self):
-#         if self not in clients:
-#             clients.append(self)
-#
-#     def on_message(self, message):
-#         print message
-#
-#     def on_close(self):
-#         if self in clients:
-#             clients.remove(self)
-
 
 @gen.coroutine
 def pair_images(queue_a, queue_b):
-    while True:
-        if len(queue_a) > 0:
-            queue_a.popleft()
-            print 'popped item'
+    # Preliminary version: pick closest point up to the greater of the 2 pts
+    pop_a = True
+    pop_b = True
+    a_last = None
+    b_last = None
+    prev_larger = None
+    while len(queue_a) > 0 and len(queue_b) > 0:
+        if pop_a:
+            a = queue_a.popleft()
+        if pop_b:
+            b = queue_b.popleft()
+        if a[0] == b[0]:
+            print "match! will return {} and {}".format(a, b)
+            # TODO: pass a and b to open cv module
+            pop_a = True
+            pop_b = True
+            prev_larger = None
+        if a[0] < b[0]:
+            a_last = a
+            if prev_larger == 'a':
+                print "would return {} and {}".format(a, b_last)
+                # TODO: pass b_last and a to open cv module
+                pop_b = False
+                pop_a = True
+                prev_larger = None
+            else:
+                prev_larger = 'b'
+                pop_a = True
+                pop_b = False
+        elif b[0] < a[0]:
+            b_last = b
+            if prev_larger == 'b':
+                print "would return {} and {}".format(a_last, b)
+                # TODO: pass a_last and b to open cv module
+                pop_a = False
+                pop_b = True
+                prev_larger = None
+            else:
+                prev_larger = 'a'
+                pop_a = False
+                pop_b = True
 
 
 @gen.coroutine
@@ -64,6 +89,5 @@ if __name__ == '__main__':
     setup_phone(config.phone_z_port, z_imgs)
     setup_phone(config.phone_xy_port, xy_imgs)
     # pair_images(z_imgs, xy_imgs)  # this doesn't work for some reason hmm
-    app = make_app()
-    app.listen(config.web_port)
+    app = WebApp()
     IOLoop.current().start()
