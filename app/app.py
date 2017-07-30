@@ -1,21 +1,23 @@
 from collections import deque
 from datetime import datetime, timedelta
 import logging
+import os
+from random import random
 
 from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.tcpclient import TCPClient
 
 import config
-from web import start_app
+from web import start_app, send_socket_msg
 
 xy_imgs = deque()
 z_imgs = deque()
 TIME_THRESHOLD = timedelta(milliseconds=500)
+MOCK = True  # be sure to change this for real data!
+MOCK_DATA_PATH = os.path.join(os.path.dirname(__file__), '../mock/green_pen_manual/trial1')
 
-# TODO:
-# - add in image processing of paired images
-# - add websocket layer that broadcasts coordinates to clients
+# TODO: initialize KLT tracking here
 
 
 class Item(object):
@@ -41,6 +43,12 @@ class Item(object):
 @gen.coroutine
 def process_images(img_xy, img_z):
     logging.info("paired {} and {}".format(img_xy.ts, img_z.ts))
+    for item in xy_imgs:
+        assert(item.ts >= img_xy.ts)
+    for item in z_imgs:
+        assert(item.ts >= img_z.ts)
+    # TODO: call KLT tracking here
+    # TODO: send results of KLT tracking here to clients with send_socket_msg
 
 
 @gen.coroutine
@@ -85,6 +93,20 @@ def pairing_worker():
 
 
 @gen.coroutine
+def stream_mock_data(port, queue):
+    img_files = [os.path.join(MOCK_DATA_PATH, f) for f in os.listdir(MOCK_DATA_PATH)
+                 if os.path.isfile(os.path.join(MOCK_DATA_PATH, f))]
+    cur = 0
+    while True:
+        with open(img_files[cur], 'r') as f:
+            data = f.read()
+        yield queue.append(Item(data, datetime.now()))
+        logging.info('{}: queue length {}'.format(port, len(queue)))
+        yield gen.sleep(random())
+        cur = (cur + 1) % len(img_files)
+
+
+@gen.coroutine
 def setup_phone(port, queue):
     """Listen to a socket streaming binary image data
 
@@ -92,22 +114,25 @@ def setup_phone(port, queue):
         port - the TCP port to listen on
         queue - a queue to append dicts containing image blob and datetime
     """
-    stream = yield TCPClient().connect('localhost', port)
+    if not MOCK:
+        stream = yield TCPClient().connect('localhost', port)
 
-    # Process the image data
-    def read_stream(data):
-        if len(queue) < 50:
-            queue.append(Item(data, datetime.now()))
-            logging.info('{}: queue length {}'.format(port, len(queue)))
-        stream.read_until(b'\n', callback=read_stream)
+        # Process the image data
+        def read_stream(data):
+            if len(queue) < 50:
+                queue.append(Item(data, datetime.now()))
+                logging.info('{}: queue length {}'.format(port, len(queue)))
+            stream.read_until(b'\n', callback=read_stream)
 
-    read_stream('')
+        read_stream('')
+    else:
+        yield stream_mock_data(port, queue)
 
 
 # main
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    # setup_phone(config.phone_z_port, z_imgs)
+    setup_phone(config.phone_z_port, z_imgs)
     setup_phone(config.phone_xy_port, xy_imgs)
     start_app()
     IOLoop.current().spawn_callback(pairing_worker)
