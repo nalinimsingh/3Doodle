@@ -6,11 +6,6 @@ import scipy.cluster
 import cv2
 import itertools
 
-def mask_image(image):
-    mask = np.all([image[:,:,0]<100,image[:,:,1]>100,image[:,:,2]<100],axis=0)
-    masked_image = image*mask[:,:,np.newaxis]
-    return masked_image
-
 class KLTTracker():
     def __init__(self):
         self.xmin = 100
@@ -26,10 +21,15 @@ class KLTTracker():
                     maxLevel = 10,
                     criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 100, 0.05))
 
+    def mask_image(self,image):
+        mask = np.all([image[:,:,0]<100,image[:,:,1]>100,image[:,:,2]<100],axis=0)
+        masked_image = image*mask[:,:,np.newaxis]
+        return masked_image
+
     # initial_img_array: Numpy array
     def detect_features(self,initial_img_array):
         old_frame = initial_img_array[self.ymin:self.ymax,self.xmin:self.xmax,:]
-        old_masked = mask_image(old_frame)
+        old_masked = self.mask_image(old_frame)
         self.old_gray = cv2.cvtColor(old_masked, cv2.COLOR_BGR2GRAY)
         self.p0 = cv2.goodFeaturesToTrack(self.old_gray, mask = None, **self.feature_params)
 
@@ -38,7 +38,7 @@ class KLTTracker():
 
     def update_features(self,input_img_array):
         self.frame = input_img_array[self.ymin:self.ymax,self.xmin:self.xmax,:]
-        frame_masked = mask_image(self.frame)
+        frame_masked = self.mask_image(self.frame)
         self.frame_gray = cv2.cvtColor(frame_masked, cv2.COLOR_BGR2GRAY)
 
         # Calculate optical flow
@@ -71,6 +71,13 @@ class KLTTracker():
         self.average()
         self.update_history()
 
+    def run_tracking(self,img):
+        try:
+            self.track_features(img)
+        except AttributeError:
+            self.detect_features(img)
+            self.init_feature_tracking()
+
     def get_frame(self):
         return self.frame
 
@@ -90,11 +97,10 @@ def main():
     images = [os.path.join(path,f) for f in os.listdir(path) if not f.startswith('.')]
 
     feature_tracker = KLTTracker()
-    feature_tracker.detect_features(np.asarray(cv2.imread(images[0])))
-    feature_tracker.init_feature_tracking()
+    feature_tracker.run_tracking(np.asarray(cv2.imread(images[0])))
 
     for img in images[1:]:
-        feature_tracker.track_features(np.asarray(cv2.imread(img)))
+        feature_tracker.run_tracking(np.asarray(cv2.imread(img)))
 
         # Plot points
         markers = np.zeros_like(feature_tracker.get_frame_gray())

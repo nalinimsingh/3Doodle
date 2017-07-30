@@ -11,6 +11,8 @@ from tornado.tcpclient import TCPClient
 import config
 from web import start_app, send_socket_msg
 
+from klt_tracking import KLTTracker
+
 TIME_THRESHOLD = timedelta(milliseconds=500)
 MOCK = True  # be sure to change this for real data!
 MOCK_DATA_PATH = os.path.join(os.path.dirname(__file__), '../mock/green_pen_manual/trial1')
