@@ -42,6 +42,7 @@ function undoPoint() {
 	// render new scene
 	renderer.render(scene, camera);
 }
+
 /* Adds a connected point to the current drawing */
 function addPoint(x, y, z) {
 	// create new geometry
