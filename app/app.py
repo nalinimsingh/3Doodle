@@ -1,26 +1,22 @@
 from collections import deque
 from datetime import datetime
 import logging
-import os
 
-from tornado import gen, web
+from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.tcpclient import TCPClient
 
+import config
+from web import make_app
+
 xy_imgs = deque()
 z_imgs = deque()
-clients = []
 
 # TODO:
 # - make consumer/producer queue work
 # - add in pairing algorithm of images
 # - add in image processing of paired images
 # - add websocket layer that broadcasts coordinates to clients
-
-
-class IndexHandler(web.RequestHandler):
-    def get(self):
-        self.render('index.html')
 
 # class SocketHandler(websocket.WebSocketHandler):
 #     def open(self):
@@ -97,22 +93,12 @@ def setup_phone(port, queue):
     read_stream('')
 
 
-# web application
-def make_app():
-    settings = {
-        'static_path': os.path.join(os.path.dirname(__file__), 'static'),
-    }
-    return web.Application([
-        (r'/', IndexHandler),
-    ], **settings)
-
-
 # main
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    setup_phone(8888, z_imgs)
-    setup_phone(8889, xy_imgs)
+    setup_phone(config.phone_z_port, z_imgs)
+    setup_phone(config.phone_xy_port, xy_imgs)
     # pair_images(z_imgs, xy_imgs)  # this doesn't work for some reason hmm
     app = make_app()
-    app.listen(5000)
+    app.listen(config.web_port)
     IOLoop.current().start()
