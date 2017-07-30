@@ -2,11 +2,18 @@ from collections import deque
 from datetime import datetime, timedelta
 import logging
 import os
+import sys
 from random import random
+
+from PIL import Image
+import numpy as np
+import cv2
 
 from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.tcpclient import TCPClient
+
+import json
 
 import config
 from web import start_app, send_socket_msg
@@ -20,7 +27,8 @@ MOCK_DATA_PATH = os.path.join(os.path.dirname(__file__), '../mock/green_pen_manu
 # TODO: initialize KLT tracking here
 xy_imgs = deque()
 z_imgs = deque()
-
+xy_tracker = KLTTracker()
+z_tracker = KLTTracker()
 
 class Item(object):
     def __init__(self, data, ts):
@@ -72,8 +80,19 @@ def process_images(img_xy, img_z):
         assert(item.ts >= img_xy.ts)
     for item in z_imgs:
         assert(item.ts >= img_z.ts)
-    # TODO: call KLT tracking here
-    # TODO: send results of KLT tracking here to clients with send_socket_msg
+
+    xy_data = np.asarray(img_xy.data, dtype='uint8')
+    z_data = np.asarray(img_z.data, dtype='uint8')
+
+    xy_tracker.run_tracking(xy_data)
+    z_tracker.run_tracking(z_data)
+
+    try:
+        msg = dict(x=xy_tracker.get_avg[0],y=xy_tracker.get_avg[1],z=z_tracker.get_avg[1])
+        msg = json.dumps(msg)
+        send_socket_msg(msg)
+    except:
+        pass
 
 
 @gen.coroutine
@@ -145,11 +164,12 @@ def stream_mock_data(port, queue):
         queue (collections.deque) - a queue to append mock Item objects to (with roughly real timestamps)
     """
     img_files = [os.path.join(MOCK_DATA_PATH, f) for f in os.listdir(MOCK_DATA_PATH)
-                 if os.path.isfile(os.path.join(MOCK_DATA_PATH, f))]
+                 if os.path.isfile(os.path.join(MOCK_DATA_PATH, f)) and not f.startswith('.')]
     cur = 0
     while True:
-        with open(img_files[cur], 'r') as f:
-            data = f.read()
+        #with open(img_files[cur], 'r') as f:
+        #    data = f.read()
+        data = Image.open(img_files[cur])
         yield queue.append(Item(data, datetime.now()))
         logging.info('{}: queue length {}'.format(port, len(queue)))
         yield gen.sleep(random()/5)
