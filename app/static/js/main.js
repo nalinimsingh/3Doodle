@@ -1,4 +1,5 @@
 init();
+// testDrawLine();
 
 document.onkeydown = function(e) {
 	// Space bar toggles between tracking and not tracking
