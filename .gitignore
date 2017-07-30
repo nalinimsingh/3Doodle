@@ -1,3 +1,5 @@
 venv
 *.pyc
 .ropeproject
+cv.py
+cv2.so
