@@ -25,6 +25,23 @@ function init(initX=0, initY=0, initZ=100, fov=50, near=1, far=500, color=0xff00
 	scene.add(line);
 }
 
+/* Remove last point from drawing */
+function undoPoint() {
+	// create new geometry without last point
+	var newVertices = geometry.vertices;
+	newVertices.splice(newVertices.length-1, 1);
+	clearCanvas();
+	geometry = new THREE.Geometry();
+	geometry.vertices = newVertices;
+
+	// create new line and add to scene
+	var newLine = new THREE.Line(geometry, material);
+	scene.remove(line);
+	scene.add(newLine);
+
+	// render new scene
+	renderer.render(scene, camera);
+}
 /* Adds a connected point to the current drawing */
 function addPoint(x, y, z) {
 	// create new geometry
