@@ -1,5 +1,6 @@
 from collections import deque
 import logging
+import json
 
 from tornado import gen
 from tornado.ioloop import IOLoop
@@ -13,6 +14,7 @@ points = deque()
 def send_point():
     point = points.popleft()
     msg = dict(x=point[0], y=point[1], z=point[2])
+    msg = json.dumps(msg)
     send_socket_msg(msg)
     points.append(point)
 

@@ -1,16 +1,17 @@
-var socket;
-
-if ("WebSocket" in window) {
-	console.log('Web socket supported');
-	socket = createSocket();
-	init();
-} else {
-	console.log('Web socket not supported :(');
-}
+init();
 
 document.onkeydown = function(e) {
+	// Space bar toggles between tracking and not tracking
     if (e.keyCode == 32) {
-    	testDrawLine();
+    	toggleTracking();
+    }
+
+    // Delete key clears canvas and stops tracking
+    if (e.keyCode == 8) {
+    	clearCanvas();
+    	if (tracking) {
+    		toggleTracking();
+    	}
     }
 };
 

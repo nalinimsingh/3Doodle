@@ -1,6 +1,7 @@
 var scene, camera, renderer;
 var geometry, material, line;
 var tracking;
+var socket;
 
 /* Create web socket for listening to point data */
 function createSocket() {
@@ -15,7 +16,9 @@ function createSocket() {
 	};
 
 	socket.onmessage = function(event) {
-		console.log('Client received a message', event);
+		console.log('Client received a message', event.data);
+		var point = JSON.parse(event.data);
+		addPoint(point.x, point.y, point.z);
 	};
 
 	socket.onclose = function(event) {
@@ -49,7 +52,7 @@ function init(initX=0, initY=0, initZ=100, fov=50, near=1, far=500, color=0xff00
 
 	// render initial canvas
 	renderer.render(scene, camera);
-	tracking = true;
+	tracking = false;
 }
 
 /* Toggle between starting and stopping tracking */
@@ -57,15 +60,17 @@ function toggleTracking() {
 	if (tracking) {
 		stopTracking();
 		tracking = false;
+		console.log("Tracking off");
 	} else {
 		startTracking();
 		tracking = true;
+		console.log("Tracking on");
 	}
 }
 
 /* Restart drawing tracked points */
 function startTracking() {
-	createSocket();
+	socket = createSocket();
 	// TODO: make it not connect next point to previous point
 }
 
