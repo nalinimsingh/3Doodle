@@ -70,9 +70,9 @@ function clearCanvas() {
 }
 
 /* Test line drawing function */ 
-function testDrawLine(x, y, z) {
+function testDrawLine() {
 	addPoint(0,0,0);
 	addPoint(10,0,0);
-	addPoint(10,10,0);
+	addPoint(0,10,0);
 	addPoint(15,20,0);
 }
