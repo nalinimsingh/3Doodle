@@ -1,8 +1,9 @@
 from collections import deque
 from datetime import datetime
 import logging
+import os
 
-from tornado import gen
+from tornado import gen, web
 from tornado.ioloop import IOLoop
 from tornado.tcpclient import TCPClient
 
@@ -17,9 +18,10 @@ clients = []
 # - add index handler
 # - add websocket layer that broadcasts coordinates to clients
 
-# class IndexHandler(web.RequestHandler):
-#     def get(self):
-#         self.render("index.html")
+
+class IndexHandler(web.RequestHandler):
+    def get(self):
+        self.render('index.html')
 
 # class SocketHandler(websocket.WebSocketHandler):
 #     def open(self):
@@ -39,7 +41,7 @@ def pair_images(queue_a, queue_b):
     while True:
         if len(queue_a) > 0:
             queue_a.popleft()
-            print "popped item"
+            print 'popped item'
 
 
 @gen.coroutine
@@ -50,20 +52,35 @@ def setup_phone(port, queue):
         port - the TCP port to listen on
         queue - a queue to append tuples of (image blob, datetime)
     """
-    stream = yield TCPClient().connect("localhost", port)
+    stream = yield TCPClient().connect('localhost', port)
 
     # Process the image data
     def read_stream(data):
         queue.append((data, datetime.now()))
-        logging.info("{}: queue length {}".format(port, len(queue)))
-        stream.read_until(b"\n", callback=read_stream)
+        logging.info('{}: queue length {}'.format(port, len(queue)))
+        stream.read_until(b'\n', callback=read_stream)
 
-    read_stream("")
+    read_stream('')
 
 
+# web application
+settings = {
+    'static_path': os.path.join(os.path.dirname(__file__), 'static'),
+}
+
+
+def make_app():
+    return web.Application([
+        (r'/', IndexHandler),
+    ], **settings)
+
+
+# main
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     setup_phone(8888, z_imgs)
     setup_phone(8889, xy_imgs)
+    app = make_app()
+    app.listen(5000)
     # pair_images(z_imgs, xy_imgs)  # this doesn't work for some reason hmm
     IOLoop.current().start()
