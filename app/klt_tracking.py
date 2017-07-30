@@ -44,6 +44,12 @@ class KLTTracker():
         # Calculate optical flow
         self.p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gray, self.frame_gray, self.p0, None, **self.lk_params)
 
+        # If all features drop out, restart feature detection
+        if self.p1 is None:
+            self.avg = None
+            self.detect_features(input_img_array)
+            return
+
         # Select good points
         self.good_new = self.p1[st==1]
 
