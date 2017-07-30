@@ -1,5 +1,5 @@
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from tornado import gen
@@ -11,61 +11,77 @@ from web import start_app
 
 xy_imgs = deque()
 z_imgs = deque()
+TIME_THRESHOLD = timedelta(milliseconds=500)
 
 # TODO:
-# - make consumer/producer queue work
-# - add in pairing algorithm of images
 # - add in image processing of paired images
 # - add websocket layer that broadcasts coordinates to clients
+
+
+class Item(object):
+    def __init__(self, data, ts):
+        self.data = data
+        self.ts = ts
+
+    def within_threshold(self, other):
+        if abs(other.ts - self.ts) < TIME_THRESHOLD:
+            return True
+        return False
+
+    def closest_to(self, a, b):
+        diff_a = abs(a.ts - self.ts)
+        diff_b = abs(b.ts - self.ts)
+        if diff_a < diff_b and diff_a < TIME_THRESHOLD:
+            return a
+        elif diff_b < TIME_THRESHOLD:
+            return b
+        return None
+
+
+@gen.coroutine
+def process_images(img_xy, img_z):
+    logging.info("paired {} and {}".format(img_xy.ts, img_z.ts))
 
 
 @gen.coroutine
 def pair_images():
     queue_a = xy_imgs
     queue_b = z_imgs
-    # Preliminary version: pick closest point up to the greater of the 2 pts
-    pop_a = True
-    pop_b = True
-    a_last = None
-    b_last = None
-    prev_larger = None
+    if len(queue_a) == 0 or len(queue_b) == 0:
+        return
+    a_prev = None
+    b_prev = None
+    a = queue_a[0]
+    b = queue_b[0]
+    if a.ts < b.ts:
+        while a.ts < b.ts:
+            a_prev = queue_a.popleft()
+            if len(queue_a) == 0:
+                if b.within_threshold(a_prev):
+                    yield process_images(a_prev, b)
+                return
+            a = queue_a[0]
+        closest_a = b.closest_to(a, a_prev)
+        if closest_a is not None:
+            yield process_images(closest_a, b)
+    else:
+        while b.ts < a.ts:
+            b_prev = queue_b.popleft()
+            if len(queue_b) == 0:
+                if a.within_threshold(b_prev):
+                    yield process_images(a, b_prev)
+                return
+            b = queue_b[0]
+        closest_b = a.closest_to(b, b_prev)
+        if closest_b is not None:
+            yield process_images(a, closest_b)
+
+
+@gen.coroutine
+def pairing_worker():
     while True:
-        if len(queue_a) == 0 or len(queue_b) == 0:
-            pass
-        if pop_a:
-            a = queue_a.popleft()
-        if pop_b:
-            b = queue_b.popleft()
-        if a[0] == b[0]:
-            print "match! will return {} and {}".format(a, b)
-            # TODO: pass a and b to open cv module
-            pop_a = True
-            pop_b = True
-            prev_larger = None
-        if a[0] < b[0]:
-            a_last = a
-            if prev_larger == 'a':
-                print "would return {} and {}".format(a, b_last)
-                # TODO: pass b_last and a to open cv module
-                pop_b = False
-                pop_a = True
-                prev_larger = None
-            else:
-                prev_larger = 'b'
-                pop_a = True
-                pop_b = False
-        elif b[0] < a[0]:
-            b_last = b
-            if prev_larger == 'b':
-                print "would return {} and {}".format(a_last, b)
-                # TODO: pass a_last and b to open cv module
-                pop_a = False
-                pop_b = True
-                prev_larger = None
-            else:
-                prev_larger = 'a'
-                pop_a = False
-                pop_b = True
+        yield pair_images()
+        yield gen.sleep(0.1)
 
 
 @gen.coroutine
@@ -74,14 +90,15 @@ def setup_phone(port, queue):
 
     Args:
         port - the TCP port to listen on
-        queue - a queue to append tuples of (image blob, datetime)
+        queue - a queue to append dicts containing image blob and datetime
     """
     stream = yield TCPClient().connect('localhost', port)
 
     # Process the image data
     def read_stream(data):
-        queue.append((data, datetime.now()))
-        logging.info('{}: queue length {}'.format(port, len(queue)))
+        if len(queue) < 50:
+            queue.append(Item(data, datetime.now()))
+            logging.info('{}: queue length {}'.format(port, len(queue)))
         stream.read_until(b'\n', callback=read_stream)
 
     read_stream('')
@@ -90,8 +107,8 @@ def setup_phone(port, queue):
 # main
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    setup_phone(config.phone_z_port, z_imgs)
+    # setup_phone(config.phone_z_port, z_imgs)
     setup_phone(config.phone_xy_port, xy_imgs)
     start_app()
-    IOLoop.current().spawn_callback(pair_images)
+    IOLoop.current().spawn_callback(pairing_worker)
     IOLoop.current().start()
