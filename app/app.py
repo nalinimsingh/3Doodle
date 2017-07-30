@@ -14,6 +14,7 @@ from tornado.ioloop import IOLoop
 from tornado.tcpclient import TCPClient
 
 import json
+import time
 
 import config
 from web import start_app, send_socket_msg
@@ -88,10 +89,13 @@ def process_images(img_xy, img_z):
     z_tracker.run_tracking(z_data)
 
     try:
-        msg = dict(x=xy_tracker.get_avg[0],y=xy_tracker.get_avg[1],z=z_tracker.get_avg[1])
+        x, y1 = xy_tracker.get_avg().astype(float)
+        z, y2 = z_tracker.get_avg().astype(float)
+        msg = dict(x=x,y=y1,z=z)
         msg = json.dumps(msg)
         send_socket_msg(msg)
-    except:
+        time.sleep(3)
+    except Exception as e:
         pass
 
 

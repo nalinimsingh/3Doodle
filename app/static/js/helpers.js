@@ -18,7 +18,7 @@ function createSocket() {
 	socket.onmessage = function(event) {
 		console.log('Client received a message', event.data);
 		var point = JSON.parse(event.data);
-		addPoint(point.x, point.y, point.z);
+		addPoint(Math.trunc(point.x), Math.trunc(point.y), Math.trunc(point.z));
 	};
 
 	socket.onclose = function(event) {
@@ -29,7 +29,7 @@ function createSocket() {
 }
 
 /* Initialize drawing board */
-function init(initX=0, initY=0, initZ=100, fov=50, near=1, far=500, color=0xff0000) {
+function init(initX=0, initY=0, initZ=10000, fov=50, near=1, far=500, color=0xff0000) {
 	// initialize scene
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color(0xffffff);
