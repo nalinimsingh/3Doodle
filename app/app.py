@@ -94,7 +94,7 @@ def process_images(img_xy, img_z):
         msg = dict(x=x,y=y1,z=z)
         msg = json.dumps(msg)
         send_socket_msg(msg)
-        time.sleep(3)
+        # time.sleep(3)
     except Exception as e:
         pass
 
