@@ -11,13 +11,13 @@ from tornado.tcpclient import TCPClient
 import config
 from web import start_app, send_socket_msg
 
-xy_imgs = deque()
-z_imgs = deque()
 TIME_THRESHOLD = timedelta(milliseconds=500)
 MOCK = True  # be sure to change this for real data!
 MOCK_DATA_PATH = os.path.join(os.path.dirname(__file__), '../mock/green_pen_manual/trial1')
 
 # TODO: initialize KLT tracking here
+xy_imgs = deque()
+z_imgs = deque()
 
 
 class Item(object):
@@ -26,11 +26,28 @@ class Item(object):
         self.ts = ts
 
     def within_threshold(self, other):
+        """Check if this item and another item are within TIME_THRESHOLD
+
+        Args:
+            other (Item) - another Item to check
+
+        Returns:
+            True if within threshold, False otherwise
+        """
         if abs(other.ts - self.ts) < TIME_THRESHOLD:
             return True
         return False
 
     def closest_to(self, a, b):
+        """Out of two other Items, pick the closer of the two
+
+        Args:
+            a (Item) - another Item
+            b (Item) - another Item
+
+        Returns:
+            the closer Item of a and b or None if neither is within the time threshold
+        """
         diff_a = abs(a.ts - self.ts)
         diff_b = abs(b.ts - self.ts)
         if diff_a < diff_b and diff_a < TIME_THRESHOLD:
@@ -42,6 +59,12 @@ class Item(object):
 
 @gen.coroutine
 def process_images(img_xy, img_z):
+    """Process a matched pair of xy and z images, obtain the 3d point, and broadcast a websocket with that point
+
+    Args:
+        img_xy (Item) - the xy image
+        img_z (Item) - the z image
+    """
     logging.info("paired {} and {}".format(img_xy.ts, img_z.ts))
     for item in xy_imgs:
         assert(item.ts >= img_xy.ts)
@@ -53,6 +76,21 @@ def process_images(img_xy, img_z):
 
 @gen.coroutine
 def pair_images():
+    """Attempt to pair images off the xy and z image queues
+
+    If either of the queues is empty, this returns immediately
+    This then picks the first image off each queue and performs a matching procedure
+    If, for example, the xy image has an earlier timestamp than the z image:
+        - Keep peeking at the next xy image (and popping the previous one off the queue)
+          until the next xy image's timestamp is greater than the z image's timestamp
+        - If at any time there is no next xy image, check if the previous xy image is within
+          TIME_THRESHOLD. If so, process that image pair. Return regardless of whether we
+          processed an image.
+        - When we have crossed the z image timestamp, we have three images: an older xy image,
+          a newer xy image, and a z image. Compare the two xy images to the z image to determine
+          which one is closer in time to the z image, then process the resulting image pair
+    """
+    # TODO: maybe implement some way to skip frames if queue is too long
     queue_a = xy_imgs
     queue_b = z_imgs
     if len(queue_a) == 0 or len(queue_b) == 0:
@@ -87,6 +125,10 @@ def pair_images():
 
 @gen.coroutine
 def pairing_worker():
+    """Worker that attempts to generate an image pair off the queues
+
+    If successfully paired, we'll call process_image on the image pair
+    """
     while True:
         yield pair_images()
         yield gen.sleep(0.1)
@@ -94,6 +136,12 @@ def pairing_worker():
 
 @gen.coroutine
 def stream_mock_data(port, queue):
+    """Mock out phone image stream
+
+    Args:
+        port (int) - the TCP port to listen on
+        queue (collections.deque) - a queue to append mock Item objects to (with roughly real timestamps)
+    """
     img_files = [os.path.join(MOCK_DATA_PATH, f) for f in os.listdir(MOCK_DATA_PATH)
                  if os.path.isfile(os.path.join(MOCK_DATA_PATH, f))]
     cur = 0
@@ -102,7 +150,7 @@ def stream_mock_data(port, queue):
             data = f.read()
         yield queue.append(Item(data, datetime.now()))
         logging.info('{}: queue length {}'.format(port, len(queue)))
-        yield gen.sleep(random())
+        yield gen.sleep(random()/5)
         cur = (cur + 1) % len(img_files)
 
 
@@ -111,8 +159,8 @@ def setup_phone(port, queue):
     """Listen to a socket streaming binary image data
 
     Args:
-        port - the TCP port to listen on
-        queue - a queue to append dicts containing image blob and datetime
+        port (int) - the TCP port to listen on
+        queue (collections.deque) - a queue to append Item objects to
     """
     if not MOCK:
         stream = yield TCPClient().connect('localhost', port)
