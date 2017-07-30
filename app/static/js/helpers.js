@@ -1,5 +1,27 @@
 var scene, camera, renderer;
 var geometry, material, line;
+var tracking;
+
+/* Create web socket for listening to point data */
+function createSocket() {
+	socket = new WebSocket('ws://localhost:5000');
+
+	socket.onerror = function(event) {
+		console.log('ERROR!');
+	}
+
+	socket.onopen = function(event) {
+		console.log('Socket open');
+	};
+
+	socket.onmessage = function(event) {
+		console.log('Client received a message', event);
+	};
+
+	socket.onclose = function(event) {
+		console.log('Socket closed');
+	};
+}
 
 /* Initialize drawing board */
 function init(initX=0, initY=0, initZ=100, fov=50, near=1, far=500, color=0xff0000) {
@@ -20,9 +42,23 @@ function init(initX=0, initY=0, initZ=100, fov=50, near=1, far=500, color=0xff00
 	// add line object to scene
 	material = new THREE.LineBasicMaterial({color: color});
 	geometry = new THREE.Geometry();
-	// geometry.dynamic = true;
 	line = new THREE.Line(geometry, material);
 	scene.add(line);
+
+	// render initial canvas
+	renderer.render(scene, camera);
+	tracking = true;
+}
+
+/* Toggle between starting and stopping tracking */
+function toggleTracking() {
+	if (tracking) {
+		stopTracking();
+		tracking = false;
+	} else {
+		startTracking();
+		tracking = true;
+	}
 }
 
 /* Restart drawing tracked points */
