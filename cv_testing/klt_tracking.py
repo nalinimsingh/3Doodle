@@ -2,7 +2,9 @@ import sys
 import os
 import time
 import numpy as np
+import scipy.cluster
 import cv2
+import itertools
 
 def mask_image(orig_image):
   mask = np.all([orig_image[:,:,0]<100,orig_image[:,:,1]>100,orig_image[:,:,2]<100],axis=0)
@@ -18,7 +20,7 @@ def main():
   ymin = 150
   ymax = 1000
 
-  feature_params = dict( maxCorners = 100,
+  feature_params = dict( maxCorners = 10,
                          qualityLevel = 0.00001,
                          minDistance = 5,
                          blockSize = 7 )
@@ -48,23 +50,28 @@ def main():
 
       # Select good points
       good_new = p1[st==1]
-
       if len(good_new)==0:
         break
 
+      # Cluster to find the biggest collection of points
+      clusters= scipy.cluster.hierarchy.fclusterdata(good_new, 1, criterion='inconsistent', metric='euclidean', depth=2, method='average', R=None)
+      pen_tip = good_new[clusters == 1]
+
       # Plot features
       markers = np.zeros_like(frame_gray)
-      for point in good_new:
+      for point in pen_tip:
         cv2.circle(frame, tuple(point), 5, (0,0,255), 2)
 
       # Plot average
-      avg = np.average(good_new,axis=0)
+      avg = np.average(pen_tip,axis=0)
       point_history.append(avg)
-      cv2.circle(frame_masked, tuple(avg), 5, (255,255,0), 2)
+
+      for a,b in itertools.izip(point_history, point_history[1:]):
+        cv2.line(frame, tuple(a), tuple(b), (255,0,0))
 
       # Show current frame    
       cv2.imshow('frame',cv2.resize(frame, (0,0), fx=0.5, fy=0.5))
-      time.sleep(0.1)
+      time.sleep(0.5)
       k = cv2.waitKey(30) & 0xff
       if k == 27:
           break
@@ -72,7 +79,6 @@ def main():
       old_gray = frame_gray.copy()
 
       p0 = good_new.reshape(-1,1,2)
-
 
   cv2.destroyAllWindows()
 
