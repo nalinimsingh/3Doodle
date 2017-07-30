@@ -15,7 +15,7 @@ class KLTTracker():
         self.feature_params = dict(maxCorners = 10,
                          qualityLevel = 0.00001,
                          minDistance = 5,
-                         blockSize = 7 )
+                         blockSize = 7)
 
         self.lk_params = dict( winSize  = (5,5),
                     maxLevel = 10,
@@ -53,6 +53,7 @@ class KLTTracker():
         # Select good points
         self.good_new = self.p1[st==1]
 
+    # Only choose points from the largest cluster
     def cluster(self):
         if(len(self.good_new)>0):
             clusters= scipy.cluster.hierarchy.fclusterdata(self.good_new, 1, criterion='inconsistent', metric='euclidean', depth=2, method='average', R=None)
@@ -115,7 +116,7 @@ def main():
         markers = np.zeros_like(feature_tracker.get_frame_gray())
         if feature_tracker.get_pen_tip() is not None:
             for point in feature_tracker.get_pen_tip():
-                cv2.circle(feature_tracker.get_frame(), tuple(point), 5, (0,0,255), 2)
+                cv2.circle(feature_tracker.get_frame(), tuple(point), 3, (0,0,255), 3)
 
         # Display image
         cv2.imshow('frame',cv2.resize(feature_tracker.get_frame(), (0,0), fx=0.5, fy=0.5))

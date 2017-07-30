@@ -104,7 +104,6 @@ def process_images(img_xy, img_z):
         msg = json.dumps(msg)
         send_socket_msg(msg)
     except Exception:
-        # time.sleep(3)
         pass
 
 
