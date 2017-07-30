@@ -70,6 +70,9 @@ function toggleTracking() {
 
 /* Restart drawing tracked points */
 function startTracking() {
+	geometry = new THREE.Geometry();
+	line = new THREE.Line(geometry, material);
+	scene.add(line);
 	socket = createSocket();
 	// TODO: make it not connect next point to previous point
 }
@@ -77,7 +80,6 @@ function startTracking() {
 /* Stop drawing tracked points */ 
 function stopTracking() {
 	socket.close();
-	// TODO: make it not connect next point to previous point
 }
 
 /* Remove last point from drawing */
@@ -86,13 +88,13 @@ function undoPoint() {
 	var newVertices = geometry.vertices;
 	newVertices.splice(newVertices.length-1, 1);
 	clearCanvas();
-	geometry = new THREE.Geometry();
 	geometry.vertices = newVertices;
 
 	// create new line and add to scene
 	var newLine = new THREE.Line(geometry, material);
 	scene.remove(line);
 	scene.add(newLine);
+	line = newLine;
 
 	// render new scene
 	renderer.render(scene, camera);
@@ -124,10 +126,19 @@ function clearCanvas() {
 	renderer.render(scene, camera);
 }
 
-/* Test line drawing function */ 
+
+/* Testing functions */ 
 function testDrawLine() {
 	addPoint(0,0,0);
 	addPoint(10,0,0);
 	addPoint(0,10,0);
 	addPoint(15,20,0);
+}
+
+function testDisjointLines(x,y,z) {
+	var firstGeometry = new THREE.Geometry();
+	firstGeometry.vertices.push(new THREE.Vector3(x,y,z));
+	firstGeometry.vertices.push(new THREE.Vector3(x+10,y,z));
+	scene.add(new THREE.Line(firstGeometry, material));
+	renderer.render(scene, camera);
 }
