@@ -15,7 +15,6 @@ clients = []
 # - make consumer/producer queue work
 # - add in pairing algorithm of images
 # - add in image processing of paired images
-# - add index handler
 # - add websocket layer that broadcasts coordinates to clients
 
 
@@ -78,7 +77,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     setup_phone(8888, z_imgs)
     setup_phone(8889, xy_imgs)
+    # pair_images(z_imgs, xy_imgs)  # this doesn't work for some reason hmm
     app = make_app()
     app.listen(5000)
-    # pair_images(z_imgs, xy_imgs)  # this doesn't work for some reason hmm
     IOLoop.current().start()
