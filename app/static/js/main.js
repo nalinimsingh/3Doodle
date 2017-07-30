@@ -2,7 +2,7 @@ var socket;
 
 if ("WebSocket" in window) {
 	console.log('Web socket supported');
-	createSocket();
+	socket = createSocket();
 	init();
 } else {
 	console.log('Web socket not supported :(');

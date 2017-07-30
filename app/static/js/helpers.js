@@ -4,7 +4,7 @@ var tracking;
 
 /* Create web socket for listening to point data */
 function createSocket() {
-	socket = new WebSocket('ws://localhost:5000');
+	var socket = new WebSocket('ws://localhost:5000/ws');
 
 	socket.onerror = function(event) {
 		console.log('ERROR!');
@@ -21,6 +21,8 @@ function createSocket() {
 	socket.onclose = function(event) {
 		console.log('Socket closed');
 	};
+
+	return socket;
 }
 
 /* Initialize drawing board */
