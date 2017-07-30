@@ -18,7 +18,7 @@ function createSocket() {
 	socket.onmessage = function(event) {
 		console.log('Client received a message', event.data);
 		var point = JSON.parse(event.data);
-		addPoint(Math.trunc(point.x), Math.trunc(point.y), Math.trunc(point.z));
+		addPoint(point.x, point.y, point.z);
 	};
 
 	socket.onclose = function(event) {
@@ -29,7 +29,7 @@ function createSocket() {
 }
 
 /* Initialize drawing board */
-function init(initX=0, initY=0, initZ=10000, fov=50, near=1, far=500, color=0xff0000) {
+function init(initX=0, initY=0, initZ=200, fov=2500, near=1, far=500, color=0xff0000) {
 	// initialize scene
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color(0xffffff);
@@ -99,9 +99,20 @@ function undoPoint() {
 	// render new scene
 	renderer.render(scene, camera);
 }
+ 
+function convertCoords(x, y, z) {
+	var scale = 25;
+	return [-Math.trunc(x/scale), Math.trunc(y/scale), Math.trunc(z/scale)];
+}
 
 /* Adds a connected point to the current drawing */
-function addPoint(x, y, z) {
+function addPoint(cameraX, cameraY, cameraZ) {
+	drawingCoords = convertCoords(cameraX, cameraY, cameraZ);
+	var x = drawingCoords[0];
+	var y = drawingCoords[1];
+	var z = drawingCoords[2];
+	console.log('Point', x, y, z);
+
 	// create new geometry
 	var newVertices = geometry.vertices;
 	newVertices.push(new THREE.Vector3(x, y, z));
@@ -129,10 +140,11 @@ function clearCanvas() {
 
 /* Testing functions */ 
 function testDrawLine() {
-	addPoint(0,0,0);
-	addPoint(10,0,0);
-	addPoint(0,10,0);
-	addPoint(15,20,0);
+	// addPoint(0, 0, 0);
+	addPoint(-1058, -1058, 503);
+	addPoint(-1102, -1058, 478);
+	addPoint(-1204, -1102, 468);
+	addPoint(-1341, -1267, 558);
 }
 
 function testDisjointLines(x,y,z) {
