@@ -7,7 +7,7 @@ from tornado.ioloop import IOLoop
 from tornado.tcpclient import TCPClient
 
 import config
-from web import WebApp
+from web import start_app
 
 xy_imgs = deque()
 z_imgs = deque()
@@ -20,14 +20,18 @@ z_imgs = deque()
 
 
 @gen.coroutine
-def pair_images(queue_a, queue_b):
+def pair_images():
+    queue_a = xy_imgs
+    queue_b = z_imgs
     # Preliminary version: pick closest point up to the greater of the 2 pts
     pop_a = True
     pop_b = True
     a_last = None
     b_last = None
     prev_larger = None
-    while len(queue_a) > 0 and len(queue_b) > 0:
+    while True:
+        if len(queue_a) == 0 or len(queue_b) == 0:
+            pass
         if pop_a:
             a = queue_a.popleft()
         if pop_b:
@@ -88,6 +92,6 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     setup_phone(config.phone_z_port, z_imgs)
     setup_phone(config.phone_xy_port, xy_imgs)
-    # pair_images(z_imgs, xy_imgs)  # this doesn't work for some reason hmm
-    app = WebApp()
+    start_app()
+    IOLoop.current().spawn_callback(pair_images)
     IOLoop.current().start()
