@@ -64,12 +64,10 @@ def setup_phone(port, queue):
 
 
 # web application
-settings = {
-    'static_path': os.path.join(os.path.dirname(__file__), 'static'),
-}
-
-
 def make_app():
+    settings = {
+        'static_path': os.path.join(os.path.dirname(__file__), 'static'),
+    }
     return web.Application([
         (r'/', IndexHandler),
     ], **settings)
