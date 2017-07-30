@@ -36,7 +36,7 @@ class KLTTracker():
     def init_feature_tracking(self):
         self.point_history = []
 
-    def track_features(self,input_img_array):
+    def update_features(self,input_img_array):
         self.frame = input_img_array[self.ymin:self.ymax,self.xmin:self.xmax,:]
         frame_masked = mask_image(self.frame)
         self.frame_gray = cv2.cvtColor(frame_masked, cv2.COLOR_BGR2GRAY)
@@ -48,20 +48,28 @@ class KLTTracker():
         self.good_new = self.p1[st==1]
 
     def cluster(self):
-      clusters= scipy.cluster.hierarchy.fclusterdata(self.good_new, 1, criterion='inconsistent', metric='euclidean', depth=2, method='average', R=None)
-      self.pen_tip = self.good_new[clusters == 1]
+        if(len(self.good_new)>0):
+            clusters= scipy.cluster.hierarchy.fclusterdata(self.good_new, 1, criterion='inconsistent', metric='euclidean', depth=2, method='average', R=None)
+            self.pen_tip = self.good_new[clusters == 1]
 
     def average(self):
-        self.avg = np.average(self.pen_tip,axis=0)
-        self.point_history.append(self.avg)
+        if(len(self.good_new)>0):
+            self.avg = np.average(self.pen_tip,axis=0)
+            self.point_history.append(self.avg)
 
         for a,b in itertools.izip(self.point_history, self.point_history[1:]):
             cv2.line(self.frame, tuple(a), tuple(b), (255,0,0))
 
     # Prepare for the next round of tracking
-    def update(self):
+    def update_history(self):
         self.old_gray = self.frame_gray.copy()
         self.p0 = self.good_new.reshape(-1,1,2)
+
+    def track_features(self,input_img_array):
+        self.update_features(input_img_array)
+        self.cluster()
+        self.average()
+        self.update_history()
 
     def get_frame(self):
         return self.frame
@@ -87,22 +95,19 @@ def main():
 
     for img in images[1:]:
         feature_tracker.track_features(np.asarray(cv2.imread(img)))
-        if len(feature_tracker.get_good_new()) == 0:
-            break
-        feature_tracker.cluster()
-        feature_tracker.average()
-        feature_tracker.update()
 
+        # Plot points
         markers = np.zeros_like(feature_tracker.get_frame_gray())
-        for point in feature_tracker.get_pen_tip():
-            cv2.circle(feature_tracker.get_frame(), tuple(point), 5, (0,0,255), 2)
+        if feature_tracker.get_pen_tip() is not None:
+            for point in feature_tracker.get_pen_tip():
+                cv2.circle(feature_tracker.get_frame(), tuple(point), 5, (0,0,255), 2)
 
+        # Display image
         cv2.imshow('frame',cv2.resize(feature_tracker.get_frame(), (0,0), fx=0.5, fy=0.5))
         time.sleep(0.1)
         k = cv2.waitKey(30) & 0xff
         if k == 27:
             break
-
 
 if __name__ == "__main__":
     main()
