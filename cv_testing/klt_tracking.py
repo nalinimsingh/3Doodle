@@ -23,8 +23,8 @@ lk_params = dict( winSize  = (3,3),
 # Find initial features
 old_frame = np.asarray(cv2.imread(images[0]))
 mask = np.all([old_frame[:,:,0]<100,old_frame[:,:,1]>100,old_frame[:,:,2]<100],axis=0)
-old__masked = old_frame*mask[:,:,np.newaxis] 
-old_gray = cv2.cvtColor(old__masked, cv2.COLOR_BGR2GRAY)
+old_masked = old_frame*mask[:,:,np.newaxis] 
+old_gray = cv2.cvtColor(old_masked, cv2.COLOR_BGR2GRAY)
 
 # Find initial features
 p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
@@ -33,7 +33,7 @@ p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 markers = np.zeros_like(old_gray)
 for point in p0:
   print point
-  cv2.circle(old_frame_masked, tuple(point[0]), 5, (0,0,255), 2)  
+  cv2.circle(old_masked, tuple(point[0]), 5, (0,0,255), 2)  
 
 for img in images[1:]:
     frame = np.asarray(cv2.imread(img))
