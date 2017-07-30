@@ -1,7 +1,16 @@
+var socket;
+
 if ("WebSocket" in window) {
 	console.log('Web socket supported');
+	createSocket();
+	init();
+	testDrawLine();
+} else {
+	console.log('Web socket not supported :(');
+}
 
-	var socket = new WebSocket('ws://localhost:8080');
+function createSocket() {
+	socket = new WebSocket('ws://localhost:8080');
 
 	socket.onerror = function(event) {
 		console.log('ERROR!');
@@ -18,10 +27,4 @@ if ("WebSocket" in window) {
 	socket.onclose = function(event) {
 		console.log('Socket closed');
 	};
-} else {
-	console.log('Web socket not supported :(');
 }
-
-// Drawing initialization
-init();
-testDrawLine();

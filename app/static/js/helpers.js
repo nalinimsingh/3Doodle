@@ -25,6 +25,18 @@ function init(initX=0, initY=0, initZ=100, fov=50, near=1, far=500, color=0xff00
 	scene.add(line);
 }
 
+/* Restart drawing tracked points */
+function startTracking() {
+	createSocket();
+	// TODO: make it not connect next point to previous point
+}
+
+/* Stop drawing tracked points */ 
+function stopTracking() {
+	socket.close();
+	// TODO: make it not connect next point to previous point
+}
+
 /* Remove last point from drawing */
 function undoPoint() {
 	// create new geometry without last point
