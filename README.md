@@ -1,4 +1,7 @@
-# 3d-drawer
+# 3Doodle
+
+## Project Overview
+3Doodle is a 3D drawing tablet. Two mounted phone cameras capture images of a moving pen; we use [KLT feature tracking](https://en.wikipedia.org/wiki/Kanade%E2%80%93Lucas%E2%80%93Tomasi_feature_tracker) to estimate the pen tip position and then render the computed points in the browser.
 
 ## Requirements
 Install the [Android NDK](https://developer.android.com/ndk/index.html). One way to do this is to install [Android Studio](https://developer.android.com/studio/index.html), then when you have it installed follow the instructions [here](https://developer.android.com/ndk/guides/index.html). You'll also need to make sure you have `adb` installed in the same process.
